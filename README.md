@@ -1,4 +1,4 @@
-# telebot
+# Bots of NUS
 
 __Motivation__
 
