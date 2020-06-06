@@ -9,16 +9,14 @@ comp = ["SOC Announcements", "CS1101S Attendance Bot", "TeleSource"]
 def makeButtons(array):
     number = len(array)
     isEven = (number % 2 == 0)
-    i = 0
     buttonList = []
-    while i < number:
+    for i in range(0, number):
         buttonList.append(InlineKeyboardButton(array[i], callback_data = array[i]))
-        i += 1
     newList = []
-    for i in range(0, number // 2):
+    for j in range(0, number // 2):
         newArray = []
-        newArray.append(buttonList[2 * i])
-        newArray.append(buttonList[2 * i + 1])
+        newArray.append(buttonList[2 * j])
+        newArray.append(buttonList[2 * j + 1])
         newList.append(newArray)
     if not isEven:
         newList.append([buttonList[number - 1]])
@@ -36,12 +34,19 @@ def button(update, context):
     query = update.callback_query
     query.answer()
     reply = query.data
+    backButton = [[InlineKeyboardButton("Back", callback_data = "back")]]
     if reply == "Computing":
         buttons = makeButtons(comp)
+        buttons.append(backButton[0])
         keyboard = InlineKeyboardMarkup(buttons)
-        query.edit_message_text(text = "abc", reply_markup=keyboard)
+        query.edit_message_text(text = "Below is the list of available bots and channels in {}."
+                .format(reply), reply_markup=keyboard)
+    elif reply == "back":
+        start(update, context)
     else:
-        query.edit_message_text(text="Selected option: {}".format(query.data))
+        keyboard = InlineKeyboardMarkup(backButton)
+        query.edit_message_text(text="Below is the list of available bots and channels in {}. "
+        .format(reply) + "If there are none listed, work is in progress.", reply_markup=keyboard)
 
 def main():
     #Remember to remove token before commit
