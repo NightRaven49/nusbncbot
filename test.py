@@ -1,10 +1,11 @@
 from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, Filters
-from telegram import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import logging
+import sqlite3
 
+#Deprecated, for reference only
 buttons = ["FASS", "Business & Accountancy", "Computing", "Dentistry", "Engineering", "Law",
            "Medicine", "Science", "Halls/Residential Colleges", "Sports Facilities", "Others"]
-comp = ["SOC Announcements", "CS1101S Attendance Bot", "TeleSource"]
 
 def makeButtons(array):
     number = len(array)
@@ -23,30 +24,43 @@ def makeButtons(array):
     return newList
 
 def start(update, context):
+    conn = sqlite3.connect('test.db')
+    cursor = conn.execute("SELECT Category FROM BOTS")
+    buttons = []
+    for row in cursor:
+        buttons.append(row[0])
+    buttons = list(set(buttons))
     button_list = makeButtons(buttons)
     keyboard = InlineKeyboardMarkup(button_list)
     context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome! Here you can find " + 
     "many useful bots and announcement channels that you may find useful during your studies in " +
     "NUS. Please select from the custom keyboard the faculty you are interested in finding bots" +
     "/channels.", reply_markup=keyboard)
+    conn.close()
 
 def button(update, context):
     query = update.callback_query
     query.answer()
     reply = query.data
-    backButton = [[InlineKeyboardButton("Back", callback_data = "back")]]
-    if reply == "Computing":
-        buttons = makeButtons(comp)
-        buttons.append(backButton[0])
-        keyboard = InlineKeyboardMarkup(buttons)
-        query.edit_message_text(text = "Below is the list of available bots and channels in {}."
-                .format(reply), reply_markup=keyboard)
-    elif reply == "back":
-        start(update, context)
+    backButton = [InlineKeyboardButton("Back", callback_data = "back")]
+    if "@" in reply:
+        keyboard = InlineKeyboardMarkup([backButton])
+        query.edit_message_text(text=reply, reply_markup=keyboard)
     else:
-        keyboard = InlineKeyboardMarkup(backButton)
-        query.edit_message_text(text="Below is the list of available bots and channels in {}. "
-        .format(reply) + "If there are none listed, work is in progress.", reply_markup=keyboard)
+        conn = sqlite3.connect('test.db')
+        cursor = conn.execute("SELECT Username FROM BOTS WHERE Category = '{}'".format(reply))
+        bots = []
+        for row in cursor:
+            bots.append(row[0])
+        buttons = makeButtons(bots)
+        buttons.append(backButton)
+        if reply == "back":
+            start(update, context)
+        else:
+            keyboard = InlineKeyboardMarkup(buttons)
+            query.edit_message_text(text="Below is the list of available bots and channels in {}. "
+            .format(reply) + "If there are none listed, work is in progress.", reply_markup=keyboard)
+        conn.close()
 
 def main():
     #Remember to remove token before commit
