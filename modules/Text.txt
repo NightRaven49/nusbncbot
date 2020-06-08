@@ -1,0 +1,1 @@
+Hello, this bot does not support text based responses. Please use /start to interact with the bot with the provided menus or /help to access tips.
