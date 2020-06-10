@@ -1,7 +1,6 @@
 from telegram.ext import Updater, CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import sqlite3
-from modules import commands as com
 
 def makeButtons(array):
     number = len(array)
@@ -22,23 +21,40 @@ def button(update, context):
     query.answer()
     reply = query.data
     backButton = [InlineKeyboardButton("Back", callback_data = "back")]
-    if "@" in reply:
-        keyboard = InlineKeyboardMarkup([backButton, [InlineKeyboardButton("Home", callback_data =
+    conn = sqlite3.connect('modules/test2.db')
+    cursor = conn.execute("SELECT USERNAME FROM BOTS WHERE NAME = '{}'".format(reply)).fetchall()
+    if len(cursor) != 0:
+        username = cursor[0][0]
+        keyboard = InlineKeyboardMarkup([[backButton[0], InlineKeyboardButton("Home", callback_data =
             "home")]])
-        query.edit_message_text(text = reply, reply_markup = keyboard)
+        desc = conn.execute("SELECT DESCRIPTION FROM BOTS WHERE USERNAME = '{}'".format(username)).fetchall()
+        query.edit_message_text(text = username + "\n" + desc[0][0] , reply_markup = keyboard)
     else:
-        conn = sqlite3.connect('modules/test.db')
-        cursor = conn.execute("SELECT Username FROM BOTS WHERE Category = '{}'".format(reply))
-        bots = [row[0] for row in cursor]
+        newCursor = conn.execute("SELECT NAME FROM BOTS WHERE CATEGORY = '{}'".format(reply))
+        bots = [row[0] for row in newCursor]
+        for i in range(0, len(bots)):
+            if bots[i] == None:
+               bots[i] = "Placeholder Bot ({})".format(reply)
         buttons = makeButtons(bots)
         buttons.append(backButton)
         if reply == "back":
-            com.start(update, context)
+            welcome(update, context)
         elif reply == "home":
-            com.start(update, context)
+            welcome(update, context)
         else:
             keyboard = InlineKeyboardMarkup(buttons)
             query.edit_message_text(text = "Below is the list of available bots and channels in {}. "
             .format(reply) + "If there are none listed, work is in progress.", reply_markup = keyboard)
         conn.close()
 
+def welcome(update, context):
+    conn = sqlite3.connect('modules/test2.db')
+    cursor = conn.execute("SELECT CAT FROM CATEGORY")
+    buttons = [row[0] for row in cursor]
+    button_list = makeButtons(buttons)
+    keyboard = InlineKeyboardMarkup(button_list)
+    welcomeText = open("modules/L1.txt", "r")
+    context.bot.send_message(chat_id = update.effective_chat.id, text = welcomeText.read(),
+            reply_markup = keyboard)
+    conn.close()
+    welcomeText.close()
